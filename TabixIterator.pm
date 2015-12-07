@@ -1,40 +1,43 @@
 package TabixIterator;
 
-use strict;
-use warnings;
-use Carp qw/croak/;
+use Mouse;
 
-require Exporter;
+require Tabix; #does this actually do anything?
 
-our @ISA = qw/Exporter/;
-our @EXPORT = qw/tabix_iter_free/;
+#this class is just a wrapper around the tabix_iter_next method,
+#all the attributes it needs come from the main Tabix method
 
-our $VERSION = '0.2.0';
+#a hts_itr_t pointer which is returned from Tabix::query
+has "_tabix_iter" => (
+    is  => 'ro',
+    isa => 'hts_itr_tPtr',
+);
 
-require XSLoader;
-XSLoader::load('Tabix', $VERSION);
+#an open htsFile pointer
+has '_htsfile' => (
+    is       => 'ro',
+    isa      => 'htsFilePtr',
+    required => 1,
+);
 
-sub new {
-  my $invocant = shift;
-  my $class = ref($invocant) || $invocant;
-  my $self = {};
-  bless($self, $class);
-  return $self;
+has '_tabix_index' => (
+    is       => 'ro',
+    isa      => 'tbx_tPtr',
+    required => 1,
+);
+
+sub next {
+    my $self = shift;
+
+    #this is an xs method
+    return tbx_iter_next($self->_tabix_iter, $self->_htsfile, $self->_tabix_index);
 }
 
-sub set {
-  my ($self, $iter) = @_;
-  $self->{_} = $iter;
-}
-
-sub get {
+sub DEMOLISH {
   my $self = shift;
-  return $self->{_};
-}
 
-sub DESTROY {
-  my $self = shift;
-  tabix_iter_free($self->{_}) if ($self->{_});
+  #xs method
+  tbx_iter_free($self->_tabix_iter);
 }
 
 1;

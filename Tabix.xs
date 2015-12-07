@@ -3,69 +3,122 @@
 #include "XSUB.h"
 
 #include <stdlib.h>
-#include "tabix.h"
+#include "tbx.h"
+#include "kseq.h"
 
-MODULE = Tabix PACKAGE = Tabix
+MODULE = Tabix PACKAGE = HTSFile PREFIX = htsfile_
 
-tabix_t*
-tabix_open(fn, fnidx=0)
-	char *fn
-	char *fnidx
+htsFile*
+htsfile_hts_open(fname)
+    char *fname
   CODE:
-	RETVAL = ti_open(fn, fnidx);
+    RETVAL = hts_open(fname, "r");
   OUTPUT:
-	RETVAL
+    RETVAL
 
 void
-tabix_close(t)
-	tabix_t *t
+htsfile_hts_close(file)
+    htsFile* file
   CODE:
-	ti_close(t);
+    hts_close(file);
 
-ti_iter_t
-tabix_query(t, seq=0, beg=0, end=0x7fffffff)
-	tabix_t *t
-	const char *seq
-	int beg
-	int end
-  PREINIT:
+
+MODULE = Tabix PACKAGE = Tabix PREFIX = tabix_
+
+tbx_t* 
+tabix_tbx_open(fname)
+    char *fname
   CODE:
-	RETVAL = ti_query(t, seq, beg, end);
+    RETVAL = tbx_index_load(fname);
   OUTPUT:
-	RETVAL
+    RETVAL
+
+void
+tabix_tbx_close(t)
+    tbx_t* t
+  CODE:
+    tbx_destroy(t);
+
+hts_itr_t*
+tabix_tbx_query(t, region)
+    tbx_t* t
+    char *region
+  CODE:
+    RETVAL = tbx_itr_querys(t, region);
+  OUTPUT:
+    RETVAL
+
+#this must be called before reading any lines or it will break.
+#i can't easily use ftell on fp and I can't be bothered to untangle it. just use it properly
+SV*
+tabix_tbx_header(fp, tabix)
+    htsFile* fp
+    tbx_t* tabix
+  PREINIT:
+    int num_header_lines = 0;
+    AV *av_ref;
+    kstring_t str = {0,0,0};
+  CODE:
+    av_ref = newAV();
+    while ( hts_getline(fp, KS_SEP_LINE, &str) >= 0 ) {
+        if ( ! str.l ) break; //no lines left so we are done
+        if ( str.s[0] != tabix->conf.meta_char ) break;
+
+        //the line begins with a # so add it to the array
+        ++num_header_lines;
+        av_push(av_ref, newSVpv(str.s, str.l));
+    }
+
+    if ( ! num_header_lines )
+        XSRETURN_EMPTY;
+
+    RETVAL = newRV_noinc((SV*) av_ref);
+  OUTPUT:
+    RETVAL
 
 SV*
-tabix_read(t, iter)
-	tabix_t *t
-	ti_iter_t iter
+tabix_tbx_seqnames(t)
+    tbx_t* t
   PREINIT:
-	const char *s;
-	int len;
+    const char **names;
+    int i, num_seqs;
+    AV *av_ref;
   CODE:
-	s = ti_read(t, iter, &len);
-	if (s == 0)
-	   return XSRETURN_EMPTY;
-	RETVAL = newSVpv(s, len);
+    names = tbx_seqnames(t, &num_seqs); //call actual tabix method
+
+    //blast all the values onto a perl array
+    av_ref = newAV();
+    for (i = 0; i < num_seqs; ++i) {
+        SV *sv_ref = newSVpv(names[i], 0);
+        av_push(av_ref, sv_ref);
+    }
+
+    free(names);
+
+    //return a reference to our array
+    RETVAL = newRV_noinc((SV*)av_ref); 
   OUTPUT:
-	RETVAL
+    RETVAL
 
-void
-tabix_getnames(t)
-	tabix_t *t
+MODULE = Tabix PACKAGE = TabixIterator PREFIX = tabix_
+
+SV*
+tabix_tbx_iter_next(iter, fp, t)
+    hts_itr_t* iter
+    htsFile* fp
+    tbx_t* t
   PREINIT:
-	const char **names;
-	int i, n;
-  PPCODE:
-	ti_lazy_index_load(t);
-	names = ti_seqname(t->idx, &n);
-	for (i = 0; i < n; ++i)
-		XPUSHs(sv_2mortal(newSVpv(names[i], 0)));
-	free(names);
+    kstring_t str = {0,0,0};
+  CODE:
+    if (tbx_itr_next(fp, t, iter, &str) < 0)
+        XSRETURN_EMPTY;
 
-MODULE = Tabix PACKAGE = TabixIterator
+    RETVAL = newSVpv(str.s, str.l);
+  OUTPUT:
+    RETVAL
 
 void
-tabix_iter_free(iter)
-	ti_iter_t iter
+tabix_tbx_iter_free(iter)
+	hts_itr_t* iter
   CODE:
-	ti_iter_destroy(iter);
+	tbx_itr_destroy(iter);
