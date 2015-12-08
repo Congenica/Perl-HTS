@@ -1,8 +1,11 @@
+Build.PL
+lib/Bio/HTS.pm
+lib/Bio/HTS.xs
+lib/Bio/HTS/File.pm
+lib/Bio/HTS/Tabix.pm
+lib/Bio/HTS/Tabix/Iterator.pm
 MANIFEST
-typemap
-Tabix.xs
-Tabix.pm
-TabixIterator.pm
-Makefile.PL
 t/01local.t
 t/02remote.t
+test.pl
+typemap
