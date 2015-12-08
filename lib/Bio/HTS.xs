@@ -6,7 +6,11 @@
 #include "tbx.h"
 #include "kseq.h"
 
-MODULE = Tabix PACKAGE = HTSFile PREFIX = htsfile_
+typedef htsFile*         Bio__HTS__File;
+typedef tbx_t*           Bio__HTS__Tabix;
+typedef hts_itr_t*       Bio__HTS__Tabix__Iterator;
+
+MODULE = Bio::HTS PACKAGE = Bio::HTS::File PREFIX = htsfile_
 
 htsFile*
 htsfile_hts_open(fname)
@@ -23,7 +27,7 @@ htsfile_hts_close(file)
     hts_close(file);
 
 
-MODULE = Tabix PACKAGE = Tabix PREFIX = tabix_
+MODULE = Bio::HTS PACKAGE = Bio::HTS::Tabix PREFIX = tabix_
 
 tbx_t* 
 tabix_tbx_open(fname)
@@ -100,7 +104,7 @@ tabix_tbx_seqnames(t)
   OUTPUT:
     RETVAL
 
-MODULE = Tabix PACKAGE = TabixIterator PREFIX = tabix_
+MODULE = Bio::HTS PACKAGE = Bio::HTS::Tabix::Iterator PREFIX = tabix_
 
 SV*
 tabix_tbx_iter_next(iter, fp, t)
