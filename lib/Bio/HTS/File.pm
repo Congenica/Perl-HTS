@@ -10,19 +10,20 @@ our @EXPORT = qw/hts_open hts_close/;
 1;
 
 __END__
+
 =head1 NAME
 
 Bio::HTS::File - XS module providing an interface to c htsFile structs
 
 =head1 SYNOPSIS
 
- use Bio::HTS::File qw(hts_open hts_close);
+    use Bio::HTS::File qw(hts_open hts_close);
 
- my $hts = hts_open("test.bed.gz");
+    my $hts = hts_open("test.bed.gz");
  
- sub DESTROY {
-    hts_close($hts);
- }
+    sub DESTROY {
+        hts_close($hts);
+    }
 
 =head1 DESCRIPTION
 
