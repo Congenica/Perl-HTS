@@ -17,14 +17,20 @@ htsfile_hts_open(fname)
     char *fname
   CODE:
     RETVAL = hts_open(fname, "r");
+    if ( RETVAL == NULL )
+        croak("Error: could not open file %s", fname);
   OUTPUT:
     RETVAL
 
-void
+int
 htsfile_hts_close(file)
     htsFile* file
   CODE:
-    hts_close(file);
+    RETVAL = hts_close(file);
+    if ( RETVAL != 0 )
+        croak("Error: could not close specified file");
+  OUTPUT:
+    RETVAL
 
 
 MODULE = Bio::HTS PACKAGE = Bio::HTS::Tabix PREFIX = tabix_
