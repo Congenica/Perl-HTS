@@ -5,7 +5,10 @@ lib/Bio/HTS/File.pm
 lib/Bio/HTS/Tabix.pm
 lib/Bio/HTS/Tabix/Iterator.pm
 MANIFEST
-t/01local.t
-t/02remote.t
+t/00_load.t
+t/01_hts.t
+t/01_tabix.t
+t/data/test.tsv.gz
+t/data/test.tsv.gz.tbi
 test.pl
 typemap

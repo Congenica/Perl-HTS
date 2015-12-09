@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Tabix;
+use Bio::HTS::Tabix;
 use Data::Dumper;
 use feature qw(say);
 use Try::Tiny;
@@ -17,11 +17,8 @@ my @chroms = (1..22, 'X', 'Y', 'M');
 my $num_lookups = 20;
 
 
-my $t = Tabix->new( -data => $ARGV[0] );
+my $t = Bio::HTS::Tabix->new( filename => $ARGV[0] );
 sub tabix_perl {
-
-    #my @chroms = $t->getnames;
-
 #    for my $i ( 0 .. $num_lookups ) {
         #number between 100000 and 4000000
         my $start = int(rand(4000000)) + 100000;
@@ -29,20 +26,21 @@ sub tabix_perl {
         my $chrom = $chroms[int(rand(scalar @chroms))];
         
         #say "Fetching region $chrom:$start-$end... ";
-        get_region($t, $chrom, $start, $end);
+        #my $iter = $t->query("$chrom:$start-$end");
+        get_region($chrom, $start, $end);
         #say "Found " . scalar( get_region($chrom, $start, $end) ) . " entries";
         #say "\t$_" for get_region($chrom, $start, $end);
 #    }
 }
 
 sub get_region {
-    my ( $t, $chrom, $start, $end ) = @_;
+    my ( $chrom, $start, $end ) = @_;
 
-    my $iter = $t->query($chrom, $start, $end);
+    my $iter = $t->query("$chrom:$start-$end");
 
     my @rows;
     try {
-        while ( my $line = $t->read($iter) ) {
+        while ( my $line = $iter->next ) {
             push @rows, _next($line);
         }
     }
@@ -119,4 +117,4 @@ sub _next {
     return \%data;
 }
 
-timethese(100, { perl => \&tabix_perl, cmd => \&tabix_cmd });
+cmpthese(100, { perl => \&tabix_perl, cmd => \&tabix_cmd });
