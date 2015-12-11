@@ -9,7 +9,7 @@ use Bio::HTS; #load the XS
 #a hts_itr_t pointer which is returned from Tabix::query
 has "_tabix_iter" => (
     is  => 'ro',
-    isa => 'hts_itr_tPtr',
+    isa => 'Maybe[hts_itr_tPtr]',
 );
 
 #an open htsFile pointer
@@ -28,15 +28,21 @@ has '_tabix_index' => (
 sub next {
     my $self = shift;
 
+    #sometimes tabix_query doesn't return an iterator, just NULL so we have to allow
+    #a null iterator
+    return unless defined $self->_tabix_iter;
+
     #this is an xs method
     return tbx_iter_next($self->_tabix_iter, $self->_htsfile, $self->_tabix_index);
 }
 
 sub DEMOLISH {
-  my $self = shift;
+    my $self = shift;
 
-  #xs method
-  tbx_iter_free($self->_tabix_iter);
+    #xs method
+    if ( defined $self->_tabix_iter ) {
+        tbx_iter_free($self->_tabix_iter);
+    }
 }
 
 1;
