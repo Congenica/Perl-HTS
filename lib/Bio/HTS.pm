@@ -3,6 +3,14 @@ package Bio::HTS;
 our $VERSION = 0.0.1;
 
 use Try::Tiny;
+use Log::Log4perl qw( :easy );
+
+BEGIN {
+    #if there's no logger already make our own
+    if ( ! Log::Log4perl->initialized() ) {
+        Log::Log4perl->easy_init( { level => $DEBUG, layout => "%F{1} - %p - %m%n" });
+    }
+};
 
 require XSLoader;
 try {

@@ -1,11 +1,13 @@
 package Bio::HTS::Tabix;
 
-use feature qw( say );
 use Mouse;
+use Log::Log4perl qw( :easy );
 
 use Bio::HTS; #load the XS
 use Bio::HTS::File qw(hts_open hts_close);
 use Bio::HTS::Tabix::Iterator;
+
+with 'Bio::HTS::Logger';
 
 has 'filename' => (
     is       => 'ro',
@@ -69,11 +71,36 @@ sub _build_header {
     return join "", @{ $header };
 }
 
+has 'seqnames_hash' => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    builder => '_build_seqnames_hash',
+    lazy    => 1,
+);
+
+sub _build_seqnames_hash {
+    my $self = shift;
+
+    return { map { $_ => 1 } @{ $self->seqnames } };
+}
+
+#set to false to only output error messages
+has 'warnings' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 1,
+);
+
 sub BUILD {
     my ( $self ) = @_;
 
     #fetch the header of the file, which will in turn open the tabix index and the file
     $self->header;
+
+    if ( not $self->warnings ) {
+        my $logger = Log::Log4perl::get_logger(__PACKAGE__);
+        $logger->level($TRACE);
+    }
 
     return;
 }
@@ -82,27 +109,35 @@ sub query {
     my ( $self, $region ) = @_;
 
     die "Please provide a region" unless defined $region;
-    my ( $chr, $start, $end ) = $region =~ /([^:]):(\d+)(?:-(\d+))?/;
-    unless ( defined $chr and defined $start ) {
-        die "You must specify a region in the format chr:start or chr:start-end";
+    my ( $chr, $start, $end ) = $region =~ /^([^:]+)(?::(\d+))?(?:-(\d+))?$/;
+    unless ( defined $chr ) {
+        die "You must specify a region in the format chr, chr:start or chr:start-end";
     }
 
     if ( defined $end ) {
         die "End in $region is less than the start" if $end < $start;
     }
     else {
-        say STDERR "Note: You have not specified an end, which actually means chr:start-end_of_chromosome";
+        $self->log->warn("You have not specified an end, which actually means chr:start-end_of_chromosome");
     }
+
+    $self->log->trace("Fetching region $region from " . $self->filename);
 
     my $iter = tbx_query( $self->_tabix_index, $region );
 
     unless ( $iter ) {
-        die "Unable to get iterator for region $region -- is your end smaller than your start?";
+        #this likely means the chromosome wasn't found in the tabix index, or it couldn't parse the provided region.
+        if ( not exists $self->seqnames_hash->{ $chr } ) {
+            $self->log->warn("Specified chromosome '$chr' does not exist in file " . $self->filename);
+        }
+        else {
+            die "Unable to get iterator for region '$region' in file ". $self->filename . " -- htslib couldn't parse your region string";
+        }
+
     }
 
     return Bio::HTS::Tabix::Iterator->new( _tabix_iter => $iter, _htsfile => $self->_htsfile, _tabix_index => $self->_tabix_index );
 }
-
 
 sub seqnames {
     my $self = shift;
@@ -148,6 +183,20 @@ Bio::HTS::Tabix - Object oriented access to the underlying tbx C methods
 
 A high level object oriented interface to the htslib tabix (tbx.h) api. Currently it only supports
 retrieving regions from a tabixed file, because that's all I needed it for.
+
+=head2 Attributes
+
+=over 12
+
+=item C<filename>
+
+The gzipped file you want to query. Must have a filename.tbi (the index is not created automatically)
+
+=item C<warnings>
+
+Set to 0 to turn off all the warnings. Default is on
+
+=back
 
 =head2 Methods
 
