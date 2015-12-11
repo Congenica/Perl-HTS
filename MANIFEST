@@ -1,3 +1,4 @@
+bin/performance_test.pl
 Build.PL
 lib/Bio/HTS.pm
 lib/Bio/HTS.xs
@@ -8,7 +9,7 @@ MANIFEST
 t/00_load.t
 t/01_hts.t
 t/01_tabix.t
+t/data/no_index.tsv.gz
 t/data/test.tsv.gz
 t/data/test.tsv.gz.tbi
-test.pl
 typemap
