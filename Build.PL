@@ -23,7 +23,10 @@ my $build = Module::Build->new(
         '-D_USE_KNETFILE',
     ],
     requires             => {
-        'perl'                => '5.008',
+        'perl'          => '5.008',
+        'Try::Tiny'     => '0.22',
+        'Mouse'         => '2.4.2',
+        'Log::Log4perl' => '1.46',
     },
     verbose              => 1,
 );

@@ -1,8 +1,10 @@
 bin/performance_test.pl
 Build.PL
+cpanfile
 lib/Bio/HTS.pm
 lib/Bio/HTS.xs
 lib/Bio/HTS/File.pm
+lib/Bio/HTS/Logger.pm
 lib/Bio/HTS/Tabix.pm
 lib/Bio/HTS/Tabix/Iterator.pm
 MANIFEST
