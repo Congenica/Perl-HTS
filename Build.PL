@@ -29,6 +29,7 @@ my $build = Module::Build->new(
         'Log::Log4perl' => '1.46',
     },
     verbose              => 1,
+    create_makefile_pl   => 1,
 );
 
 $build->create_build_script;
