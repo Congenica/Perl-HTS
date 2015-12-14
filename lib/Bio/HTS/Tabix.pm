@@ -94,6 +94,9 @@ has 'warnings' => (
 sub BUILD {
     my ( $self ) = @_;
 
+    die "Tabix region lookup requires a gzipped, tabixed bedfile"
+        unless $self->filename =~ /gz$/;
+
     #fetch the header of the file, which will in turn open the tabix index and the file
     $self->header;
 
@@ -118,7 +121,9 @@ sub query {
         die "End in $region is less than the start" if $end < $start;
     }
     else {
-        $self->log->warn("You have not specified an end, which actually means chr:start-end_of_chromosome");
+        if ( defined $start ) {
+            $self->log->warn("You have not specified an end, which actually means chr:start-end_of_chromosome");
+        }
     }
 
     $self->log->trace("Fetching region $region from " . $self->filename);
