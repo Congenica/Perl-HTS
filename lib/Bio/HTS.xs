@@ -3,12 +3,18 @@
 #include "XSUB.h"
 
 #include <stdlib.h>
-#include "tbx.h"
-#include "kseq.h"
+#include <htslib/kseq.h>
+#include <htslib/tbx.h>
+#include <htslib/synced_bcf_reader.h>
 
 typedef htsFile*         Bio__HTS__File;
+
 typedef tbx_t*           Bio__HTS__Tabix;
 typedef hts_itr_t*       Bio__HTS__Tabix__Iterator;
+
+typedef bcf_srs_t*       Bio__HTS__VCF;
+typedef bcf_hdr_t*       Bio__HTS__VCF__Header;
+typedef bcf1_t*          Bio__HTS__VCF__Row;
 
 MODULE = Bio::HTS PACKAGE = Bio::HTS::File PREFIX = htsfile_
 
@@ -132,3 +138,64 @@ tabix_tbx_iter_free(iter)
 	hts_itr_t* iter
   CODE:
 	tbx_itr_destroy(iter);
+
+MODULE = Bio::HTS PACKAGE = Bio::HTS::VCF PREFIX = vcf_
+
+bcf_srs_t*
+vcf_bcf_sr_open(filename)
+    char* filename
+    PREINIT:
+        bcf_srs_t* sr = bcf_sr_init();
+    CODE:
+        bcf_sr_add_reader(sr, filename);
+        RETVAL = sr;
+    OUTPUT:
+        RETVAL
+
+bcf_hdr_t*
+vcf_bcf_header(vcf)
+    bcf_srs_t* vcf
+    PREINIT:
+        bcf_hdr_t *h;
+    CODE:
+        h = vcf->readers[0].header;
+        RETVAL = h;
+    OUTPUT:
+        RETVAL
+
+bcf1_t*
+vcf_bcf_next(vcf)
+    bcf_srs_t* vcf
+    PREINIT:
+        bcf1_t* line;
+    CODE:
+        if ( bcf_sr_next_line(vcf) ) {
+            line = bcf_sr_get_line(vcf, 0); //0 being the first and only reader
+            RETVAL = line;
+        }
+        else {
+            XSRETURN_EMPTY;
+        }
+    OUTPUT:
+        RETVAL
+
+SV*
+vcf_bcf_num_variants(vcf)
+    bcf_srs_t* vcf
+    PREINIT:
+        int n_records = 0;
+    CODE:
+        //loop through all the lines but don't do anything with them
+        while ( bcf_sr_next_line(vcf) ) {
+            ++n_records;
+        }
+
+        RETVAL = newSViv(n_records);
+    OUTPUT:
+        RETVAL
+
+void
+vcf_bcf_sr_close(vcf)
+    bcf_srs_t* vcf
+    CODE:
+        bcf_sr_destroy(vcf);
