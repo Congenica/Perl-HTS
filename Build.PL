@@ -35,7 +35,7 @@ my $build = Module::Build->new(
 $build->create_build_script;
 
 sub find_hts {
-    my $lib_file = "libhts.so";
+    my $lib_file = "libhts";
     my $header_file = "htslib/tbx.h";
 
     my @search_path;
@@ -62,10 +62,10 @@ sub find_hts {
             $include_dir = "$folder/include/";
         }
         
-        if ( -e "$folder/$lib_file" ) {
+        if ( <$folder/$lib_file*> ) {
             $lib_dir = $folder;
         }
-        elsif ( -e "$folder/lib/$lib_file" ) {
+        elsif ( <$folder/lib/$lib_file*> ) {
             $lib_dir = "$folder/lib/";
         }
 
